@@ -138,9 +138,6 @@ namespace reycode {
 		mapped.arena.index_count = 6*(grid.size.x-1) * (grid.size.y-1);
 
 		cudaDeviceSynchronize();
-
-		debug_view_device_values(mapped.vertices, 16);
-		debug_view_device_values(mapped.indices, 9);
 	}
 
 	void grid_2d_draw(Grid_2D_Renderer& renderer, vec3 dir_light, mat4x4& mvp) {
@@ -156,7 +153,7 @@ namespace reycode {
 
 
 	template<class T, class Func>
-	__global__ void init_shallow_waves_kernel(Grid_2D grid, slice<T> values, Func func) {
+	__global__ void init_grid_2d(Grid_2D grid, slice<T> values, Func func) {
 		uvec2 gid = uvec2(blockDim) * uvec2(blockIdx) + uvec2(threadIdx);
 		if (!(gid.x < grid.size.x && gid.y < grid.size.y)) return;
 
@@ -179,7 +176,7 @@ namespace reycode {
 		}
 	}
 
-	__global__ void advance_shallow_waves_kernel(Grid_2D grid, slice<real> heights1, slice<vec2> velocities1, 
+	__global__ void advance_shallow_water_eq_kernel(Grid_2D grid, slice<real> heights1, slice<vec2> velocities1, 
 															   slice<real> heights0, slice<vec2> velocities0, real dt) {
 		uvec2 tid = uvec2(threadIdx);
 		uvec2 gid = uvec2(TILE_WIDTH-2) * uvec2(blockIdx) + tid;
@@ -228,7 +225,7 @@ namespace reycode {
 		grid(heights1,gid) = h(0, 0) + dt*h_dt;
 	}
 
-	void advance_shallow_waves(Grid_2D grid, slice<real> heights1, slice<vec2> velocities1,
+	void advance_shallow_water_eq(Grid_2D grid, slice<real> heights1, slice<vec2> velocities1,
 											slice<real> heights0, slice<vec2> velocities0, real dt) {
 		uvec2 size = grid.size;
 
@@ -242,34 +239,21 @@ namespace reycode {
 		{
 			uvec3 block_dim = { TILE_WIDTH, TILE_WIDTH, 1 };
 			uvec3 grid_dim = ceil_div(uvec3(size.x - 2 * GHOST, size.y - 2 * GHOST, 1), {TILE_WIDTH-2*GHOST, TILE_WIDTH-2*GHOST, 1});
-			advance_shallow_waves_kernel<<<grid_dim, block_dim>>> (grid, heights1, velocities1, heights0, velocities0, dt);
+			advance_shallow_water_eq_kernel<<<grid_dim, block_dim>>> (grid, heights1, velocities1, heights0, velocities0, dt);
 		}
-
-		/* {
-			uvec3 block_dim = { 32, 1, 1 };
-			uvec3 grid_dim = { ceil_div(max(size.x,size.y),block_dim.x), 2, 1 };
-			periodic_bc << <grid_dim, block_dim >> > (grid, heights1);
-			periodic_bc << <grid_dim, block_dim >> > (grid, velocities1);
-		}*/
 	}
 
 	void destroy_grid_2d_renderer(Grid_2D_Renderer* renderer) {
 		destroy_vertex_buffer(renderer->rhi, renderer->vertex_buffer);
 		cudaGraphicsUnregisterResource(renderer->vbo_resource);
 		cudaGraphicsUnregisterResource(renderer->ibo_resource);
-	}
-
-	struct Shallow_Water_Sim {
-		
-	};
-
-	
+	}	
 
 	int launch_shallow_water_viewer() {
 		uvec2 extent = { 4096,2048 };
 
 		Window_Desc window_desc = {};
-		window_desc.title = "Shallow Water";
+		window_desc.title = "Shallow Water (Lucas Gotz)";
 		window_desc.width = extent.x;
 		window_desc.height = extent.y;
 		window_desc.validation = true;
@@ -311,11 +295,11 @@ namespace reycode {
 			real f = 10.0_R;
 			const real A = 20;
 
-			init_shallow_waves_kernel<<<block_dim, thread_dim >>> (grid, heights0, [=] CGPU (vec2 pos) {
+			init_grid_2d<<<block_dim, thread_dim >>> (grid, heights0, [=] CGPU (vec2 pos) {
 				return 0.5 + 0.5*exp(-A*pow(length(pos),2));
 			});
 
-			init_shallow_waves_kernel<<<block_dim, thread_dim >>> (grid, velocities0, [=] CGPU(vec2 pos) {
+			init_grid_2d<<<block_dim, thread_dim >>> (grid, velocities0, [=] CGPU(vec2 pos) {
 				return vec2(); 
 			});
 		}
@@ -344,11 +328,11 @@ namespace reycode {
 			mat4x4 mvp = fpv_proj_mat(fpv, extent) * fpv_view_mat(fpv);
 			vec3 dir_light = normalize(vec3(-1, -1, -1));
 
-			uint32_t sub_timesteps = 100;
-
 			if (playing) {
+				uint32_t sub_timesteps = 100;
+
 				for (uint32_t i = 0; i < sub_timesteps; i++) {
-					advance_shallow_waves(grid, heights1, velocities1, heights0, velocities0, 1e-5);
+					advance_shallow_water_eq(grid, heights1, velocities1, heights0, velocities0, 1e-5);
 					std::swap(heights0, heights1);
 					std::swap(velocities0, velocities1);
 				}
