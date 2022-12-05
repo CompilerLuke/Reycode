@@ -1,0 +1,6 @@
+[submodule "Reycode/vendor/moderngpu"]
+	path = Reycode/vendor/moderngpu
+	url = https://github.com/moderngpu/moderngpu.git
+[submodule "ReycodeTest/vendor/googletest"]
+	path = ReycodeTest/vendor/googletest
+	url = https://github.com/google/googletest.git
