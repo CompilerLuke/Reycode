@@ -608,10 +608,10 @@ namespace reycode {
 		T* data;
 		uint32_t length;
 
-		slice() : data(nullptr), length(0) {}
-		slice(T& value) : data(&value), length(1) {}
+		INL_CGPU slice() : data(nullptr), length(0) {}
+		INL_CGPU slice(T& value) : data(&value), length(1) {}
 		//slice(std::initializer_list<T> list) : data((T*)list.begin()), length(list.size()) {} //todo: introduce const slice
-		slice(T* data, uint32_t length) : data(data), length(length) {}
+		INL_CGPU slice(T* data, uint32_t length) : data(data), length(length) {}
 
 		INL_CGPU T& operator[](uint32_t i) {
 #ifdef BOUNDS_CHECKING
@@ -634,9 +634,11 @@ namespace reycode {
 	};
 
 	template<class T>
-	INL_CGPU slice<T> subslice(slice<T> s, uint32_t offset, uint32_t length) {
+	slice<T> INL_CGPU subslice(slice<T> s, uint32_t offset, uint32_t length) {
+#ifdef BOUNDS_CHECKING
 		assert(offset <= s.length);
 		assert(offset + length <= s.length);
+#endif
 		return { s.data + offset, length };
 	}
 

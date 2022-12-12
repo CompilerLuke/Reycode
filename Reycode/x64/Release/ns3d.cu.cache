@@ -4,8 +4,8 @@ AdditionalCompilerOptions=
 AdditionalDependencies=
 AdditionalDeps=
 AdditionalLibraryDirectories=
-AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60
-AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60
+AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60 --Werror=cross-execution-space-call
+AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60 --Werror=cross-execution-space-call
 CodeGeneration=compute_52,sm_52
 CodeGeneration=compute_52,sm_52
 CompileOut=C:\Users\User\source\repos\Reycode\Reycode\x64\Release\ns3d.cu.obj
@@ -13,7 +13,7 @@ CudaRuntime=Static
 CudaToolkitCustomDir=
 DebugInformationFormat=None
 DebugInformationFormat=None
-Defines=;WIN32;WIN64;BOUNDS_CHECKING;NDEBUG;_CONSOLE;_MBCS;
+Defines=;WIN32;WIN64;NDEBUG;_CONSOLE;_MBCS;
 Emulation=false
 EnableVirtualArchInFatbin=true
 ExtensibleWholeProgramCompilation=false
