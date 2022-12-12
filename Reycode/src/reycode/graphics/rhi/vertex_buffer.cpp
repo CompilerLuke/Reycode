@@ -41,10 +41,10 @@ namespace reycode {
         return buffer;
     }
 
-    void vertex_buffer_upload(RHI& rhi, Vertex_Buffer& buffer, uint64_t vertex_count, uint64_t index_count, Vertex* vertices, uint32_t* indices) {
+    void vertex_buffer_upload(RHI& rhi, Vertex_Buffer& buffer, slice<Vertex> vertices, slice<uint32_t> indices) {
         glBindVertexArray(buffer.vao);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * index_count, indices, GL_STATIC_DRAW);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertex_count, vertices, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.length, indices.data, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.length, vertices.data, GL_STATIC_DRAW);
     }
 
     void destroy_vertex_buffer(RHI& rhi, Vertex_Buffer& buffer) {

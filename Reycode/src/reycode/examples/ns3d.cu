@@ -26,7 +26,7 @@ namespace reycode {
 
         if (!(tile_id < level.tile_count && max(cell) < TILE_INNER_CELLS)) return;
 
-        vec3 pos = level.positions[tile_id];
+        vec3 pos = level.particles[tile_id];
         real value = cos(pos.x)* cos(pos.y)* cos(pos.z);
         level(data, tile_id, cell) = value;
     }

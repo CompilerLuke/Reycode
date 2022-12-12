@@ -252,12 +252,16 @@ namespace reycode {
 		INL_CGPU_CONST vec3() : x(0.0f), y(0.0f), z(0.0f) {}
 		INL_CGPU_CONST vec3(real x, real y, real z) : x(x), y(y), z(z) {}
 		INL_CGPU_CONST explicit vec3(real x) : x(x), y(x), z(x) {}
-		INL_CGPU_CONST vec3(vec2 xy, real z) : x(xy.x), y(xy.y), z(x) {}
+		INL_CGPU_CONST vec3(vec2 xy, real z) : x(xy.x), y(xy.y), z(z) {}
 		INL_CGPU_CONST explicit vec3(uvec3 a) : x(real(a.x)), y(real(a.y)), z(real(a.z)) {}
 		INL_CGPU_CONST explicit vec3(ivec3 a) : x(real(a.x)), y(real(a.y)), z(real(a.z)) {}
 
 		INL_CGPU real& operator()(uint32_t i) { return (&this->x)[i]; }
 		INL_CGPU real& operator[](uint32_t i) { return (&this->x)[i]; }
+
+		INL_CGPU_CONST vec2 xy() {
+			return { x, y };
+		}
 	};
 
 	struct vec4 {
@@ -631,9 +635,9 @@ namespace reycode {
 
 	template<class T>
 	INL_CGPU slice<T> subslice(slice<T> s, uint32_t offset, uint32_t length) {
-		assert(offset < s.length);
+		assert(offset <= s.length);
 		assert(offset + length <= s.length);
-		return { s.data + offset, s.length };
+		return { s.data + offset, length };
 	}
 
 	struct Cuda_Error {

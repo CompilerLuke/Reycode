@@ -14,24 +14,24 @@ namespace reycode {
     };
 
     struct Vertex_Buffer_Desc {
-        size_t vertex_buffer_size;
-        size_t index_buffer_size;
+        size_t vertex_buffer_size = 0;
+        size_t index_buffer_size = 0;
     };
 
     struct Vertex_Arena {
-        uint32_t vertex_offset;
-        uint32_t vertex_count;
-        uint32_t vertex_capacity;
+        uint32_t vertex_offset = 0;
+        uint32_t vertex_count = 0;
+        uint32_t vertex_capacity = 0;
 
-        uint32_t index_offset;
-        uint32_t index_count;
-        uint32_t index_capacity;
+        uint32_t index_offset = 0;
+        uint32_t index_count = 0;
+        uint32_t index_capacity = 0;
     };
 
     struct Vertex_Buffer {
-        GLuint vao;
-        GLuint vertices;
-        GLuint indices;
+        GLuint vao = 0;
+        GLuint vertices = 0;
+        GLuint indices = 0;
 
         Vertex_Arena arena;
 
@@ -51,7 +51,7 @@ namespace reycode {
     };
 
     Vertex_Buffer make_vertex_buffer(RHI& rhi, const Vertex_Buffer_Desc& desc);
-    void vertex_buffer_upload(RHI& rhi, Vertex_Buffer& buffer, uint64_t vertex_count, uint64_t index_count, Vertex* vertices, uint32_t* indices);
+    void vertex_buffer_upload(RHI& rhi, Vertex_Buffer& buffer, slice<Vertex> vertices, slice<uint32_t> indices);
     void destroy_vertex_buffer(RHI& rhi, Vertex_Buffer& buffer);
 
     Vertex_Arena_Mapped vertex_arena_submap(Vertex_Arena_Mapped& master, Vertex_Arena& child);

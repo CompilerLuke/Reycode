@@ -14,7 +14,7 @@ namespace reycode {
 
     struct Mesh_Level {
         vec3 tile_size;
-        slice<vec3> positions;
+        slice<vec3> particles;
         uint32_t tile_count;
 
         template<class T>

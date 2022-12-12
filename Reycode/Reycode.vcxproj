@@ -90,6 +90,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="src\reycode\examples\nbody.cu" />
     <CudaCompile Include="src\reycode\examples\shallow_water.cu" />
     <CudaCompile Include="src\reycode\mesh\mesh.cu" />
     <CudaCompile Include="src\reycode\examples\ns3d.cu" />

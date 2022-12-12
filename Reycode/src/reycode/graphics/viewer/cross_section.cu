@@ -29,7 +29,7 @@ namespace reycode {
         DEFER(arena_reset(tmp_device_arena, arena_watermark));
 
         Mesh_Level& level = in.level;
-        slice<vec3> positions = in.level.positions;
+        slice<vec3> particles = in.level.particles;
         vec3 cut_center = in.cut_center;
         vec3 tile_size = level.tile_size;
 
@@ -38,7 +38,7 @@ namespace reycode {
         auto cull_kernel = [=] CGPU(uint32_t gid) {
             if (gid >= level.tile_count) return false;
 
-            vec3 pos = positions[gid];
+            vec3 pos = particles[gid];
             vec3 cut_pos = pos - cut_center;
             bool visible = !(cut_pos.x > 0 && cut_pos.y > 0 && cut_pos.z > 0)
                 && !(cut_pos.x < -tile_size.x || cut_pos.y < -tile_size.y || cut_pos.z < -tile_size.z);
@@ -135,7 +135,7 @@ namespace reycode {
 
         uint32_t tile_id = tile_ids[gid];
 
-        vec3 pos = level.positions[tile_id];
+        vec3 pos = level.particles[tile_id];
         vec3 cut_pos = pos - cut_center;
 
         uint32_t vert_gid = gid * VERTS_PER_CUBE;
