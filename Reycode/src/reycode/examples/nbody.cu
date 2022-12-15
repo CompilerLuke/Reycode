@@ -6,6 +6,13 @@
 #include <cuda_gl_interop.h>
 #include <curand.h>
 
+#include <thrust/execution_policy.h>
+#include <thrust/sort.h>
+#include <thrust/iterator/constant_iterator.h>
+
+#include <atomic>
+#include <thread>
+
 namespace reycode {
 	struct Particle_AOS {
 		vec3 position;
@@ -19,12 +26,20 @@ namespace reycode {
 		vec2 max;
 	};
 
-	constexpr uint32_t MAX_PARTICLES_PER_QUAD = 1; // 2048;
+	constexpr uint32_t MAX_PARTICLES_PER_QUAD = 32; // 1024; // 2048;
 
 	using quad_tree_node_handle = uint32_t;
 	using quad_tree_data_handle = uint32_t;
 
 	constexpr quad_tree_data_handle NODE_HAS_CHILDREN_FLAG = INT_MAX;
+
+	using morton_code = uint64_t;
+	constexpr uint32_t MORTON_BITS_TOTAL = 64;
+	constexpr uint32_t MORTON_BITS_DEPTH = 4;
+	constexpr uint32_t MORTON_BITS = MORTON_BITS_TOTAL - MORTON_BITS_DEPTH;
+
+	constexpr uint32_t MAX_DEPTH = 16;
+	static_assert(MAX_DEPTH <= 1 << MORTON_BITS_DEPTH, "MAX DEPTH cannot be encoded with MORTON BITS");
 
 	struct Quad_Tree_Node {
 		AABB aabb;
@@ -33,27 +48,18 @@ namespace reycode {
 		uint32_t particle_count;
 		uint32_t node_count;
 		quad_tree_data_handle data;
+		morton_code morton;
+
+		INL_CGPU operator morton_code() { return morton; }
 	};
 
 	CGPU bool quad_node_is_leaf(Quad_Tree_Node node) {
-		return node.particle_count > 0; 
+		return node.node_count == 0; 
 	}
 
 	struct N_Body_Tree {
 		AABB aabb;
 		slice<Quad_Tree_Node> nodes;
-	};
-
-	struct N_Body_Tree_Divide_In {
-		N_Body_Tree& tree;
-		uint32_t& node_counter;
-		uint32_t& particle_counter;
-		Arena& transient_arena;
-		slice<Particle_AOS> particles;
-		slice<Particle_AOS> particles_tmp;
-		slice<Particle_AOS> particles_out;
-		AABB aabb;
-		uint32_t depth = 0;
 	};
 
 	uint32_t quad_index(vec2 min, vec2 dim_half, vec2 pos) {
@@ -82,133 +88,277 @@ namespace reycode {
 		return aabb;
 	}
 
-	void build_quadtree(N_Body_Tree_Divide_In& in) {
-		if (in.particles.length == 0) return;
+	//Source: https://stackoverflow.com/questions/30539347/2d-morton-code-encode-decode-64bits
+	INL_CGPU morton_code xy2d_morton(uint64_t x, uint64_t y) {
+		x = (x | (x << 16)) & 0x0000FFFF0000FFFF;
+		x = (x | (x << 8)) & 0x00FF00FF00FF00FF;
+		x = (x | (x << 4)) & 0x0F0F0F0F0F0F0F0F;
+		x = (x | (x << 2)) & 0x3333333333333333;
+		x = (x | (x << 1)) & 0x5555555555555555;
 
-		uint32_t id = in.node_counter++;
-		Quad_Tree_Node& node = in.tree.nodes[id];
-		node = {};
-		slice<Particle_AOS> particles = in.particles;
-		AABB aabb = in.aabb;
+		y = (y | (y << 16)) & 0x0000FFFF0000FFFF;
+		y = (y | (y << 8)) & 0x00FF00FF00FF00FF;
+		y = (y | (y << 4)) & 0x0F0F0F0F0F0F0F0F;
+		y = (y | (y << 2)) & 0x3333333333333333;
+		y = (y | (y << 1)) & 0x5555555555555555;
 
-		node.aabb = aabb;
-
-		if (particles.length <= MAX_PARTICLES_PER_QUAD) {
-			node.particle_count = particles.length;
-			node.data = in.particle_counter;
-			node.node_count = 0;
-			in.particle_counter += particles.length;
-
-			real weight = 0;
-			node.center_of_mass = vec3();
-			node.mass = 0;
-
-			for (uint32_t i = 0; i < particles.length; i++) {
-				Particle_AOS& particle = particles[i];
-
-				node.center_of_mass += particle.mass * particle.position;
-				node.mass += particle.mass;
-				if (in.particles.data != in.particles_out.data) in.particles_out[i] = in.particles[i];
-			}
-
-			node.center_of_mass = node.center_of_mass / node.mass;
-			return;
-		}
-		
-		node.data = NODE_HAS_CHILDREN_FLAG;
-
-
-		vec2 dim = aabb.max - aabb.min;
-		vec2 dim_half = 0.5_R * dim;
-
-		uint32_t n = particles.length;
-		slice<uint32_t> prefix_sum = arena_push_array<uint32_t>(in.transient_arena, 4 * n + 1);
-
-		slice<Particle_AOS> particles2 = in.particles_tmp;
-
-		memset(prefix_sum.data, 0, sizeof(uint32_t) * prefix_sum.length);
-
-		node.center_of_mass = vec3();
-		node.mass = 0;
-
-		for (uint32_t i = 0; i < n; i++) {
-			Particle_AOS particle = particles[i];
-			node.center_of_mass += particle.mass * particle.position;
-			node.mass += particle.mass;
-
-			uint32_t index = quad_index(aabb.min, dim_half, particle.position.xy());
-			prefix_sum[index*n + i] = 1;
-		}
-
-		node.center_of_mass = node.center_of_mass / node.mass;
-
-		uint32_t sum = 0;
-		for (uint32_t i = 0; i < prefix_sum.length; i++) {
-			uint32_t incr = prefix_sum[i];
-			prefix_sum[i] = sum;
-			sum += incr;
-		}
-
-		slice<Particle_AOS> children[4];
-		for (uint32_t k = 0; k < 4; k++) {
-			uint32_t length = prefix_sum[n*(k + 1)] - prefix_sum[n*k];
-			children[k] = arena_push_array<Particle_AOS>(in.transient_arena, length);
-		}
-
-		for (uint32_t i = 0; i < 4 * particles.length; i++) {
-			if (prefix_sum[i] != prefix_sum[i + 1]) {
-				particles2[prefix_sum[i]] = particles[i % n];
-			}
-		}
-
-		for (uint32_t k = 0; k < 4; k++) {
-			N_Body_Tree_Divide_In sub = in;
-
-			uint32_t offset = prefix_sum[n * k];
-			uint32_t length = prefix_sum[n * (k + 1)] - prefix_sum[n * k];
-
-			sub.particles = subslice(particles2, offset, length);
-			sub.particles_tmp = subslice(particles, offset, length);
-			sub.particles_out = subslice(in.particles_out, offset, length);
-
-			sub.aabb.min = aabb.min + vec2(real(k % 2), real(k / 2)) * dim_half;
-			sub.aabb.max = sub.aabb.min + dim_half;
-
-			sub.depth = in.depth + 1;
-			build_quadtree(sub);
-		};
-		node.node_count = in.node_counter - id - 1;
+		return x | (y << 1);
 	}
 
+	INL_CGPU uint32_t morton_1(morton_code x)
+	{
+		x = x & 0x5555555555555555;
+		x = (x | (x >> 1)) & 0x3333333333333333;
+		x = (x | (x >> 2)) & 0x0F0F0F0F0F0F0F0F;
+		x = (x | (x >> 4)) & 0x00FF00FF00FF00FF;
+		x = (x | (x >> 8)) & 0x0000FFFF0000FFFF;
+		x = (x | (x >> 16)) & 0x00000000FFFFFFFF;
+		return (uint32_t)x;
+	}
 
-	N_Body_Tree build_quad_tree(Arena& tmp_arena, AABB aabb, slice<Particle_AOS> particles_in_gpu, slice<Particle_AOS> particles_out_gpu, slice<Quad_Tree_Node>& nodes_gpu, Cuda_Error& err) {
-		err |= cudaDeviceSynchronize();
+	INL_CGPU void d2xy_morton(uint64_t d, uint64_t& x, uint64_t& y) {
+		x = morton_1(d);
+		y = morton_1(d >> 1);
+	}
 
-		slice<Particle_AOS> particles_cpu = arena_push_array<Particle_AOS>(tmp_arena, particles_in_gpu.length);
-		err |= cudaMemcpy(particles_cpu.data, particles_in_gpu.data, (uint64_t)sizeof(Particle_AOS) * particles_in_gpu.length, cudaMemcpyDeviceToHost);
+	INL_CGPU morton_code to_morton(vec2 pos, AABB aabb) {
+		uint64_t x = (double)((pos.x - aabb.min.x) / (aabb.max.x - aabb.min.x)) * (1ull << MORTON_BITS_TOTAL/2);
+		uint64_t y = (double)((pos.y - aabb.min.y) / (aabb.max.y - aabb.min.y)) * (1ull << MORTON_BITS_TOTAL/2);
 
-		slice<Particle_AOS> particles2_cpu = arena_push_array<Particle_AOS>(tmp_arena, particles_in_gpu.length);
-		
-		uint32_t max_nodes = 2*particles_in_gpu.length;
-		
-		N_Body_Tree tree = {};
-		tree.nodes = arena_push_array<Quad_Tree_Node>(tmp_arena, max_nodes);
+		x << MORTON_BITS / 2;
+		y << MORTON_BITS / 2;
+
+		return xy2d_morton(x, y);
+	}
+
+	INL_CGPU vec2 from_morton(morton_code code, AABB aabb) {
+		uint64_t x, y;
+		d2xy_morton(code, x, y);
+
+		x << MORTON_BITS / 2;
+		y << MORTON_BITS / 2;
+
+		return vec2(
+			(double)(aabb.min.x + x * (aabb.max.x - aabb.min.x) / (1ull << MORTON_BITS_TOTAL/2)),
+			(double)(aabb.min.y + y * (aabb.max.y - aabb.min.y) / (1ull << MORTON_BITS_TOTAL/2))
+		);
+	}
+
+	struct vec4_highp {
+		double x, y, z, w;
+
+		CGPU vec4_highp() : x(0), y(0), z(0), w(0) {}
+		CGPU vec4_highp(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
+		CGPU vec4_highp(vec3 xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+
+		CGPU vec3 xyz() { return { (real)x,(real)y,(real)z }; }
+	};
+
+	CGPU vec4_highp operator*(double a, vec4_highp b) {
+		return { a * b.x,a * b.y,a * b.z,a * b.w };
+	}
+
+	CGPU vec4_highp operator+(vec4_highp a, vec4_highp b) {
+		return { a.x + b.x,a.y + b.y,a.z + b.z,a.w + b.w };
+	}
+
+	CGPU vec4_highp operator-(vec4_highp a, vec4_highp b) {
+		return { a.x - b.x,a.y - b.y,a.z - b.z,a.w - b.w };
+	}
+
+	N_Body_Tree build_quad_tree(Arena& tmp_arena, AABB aabb, slice<Particle_AOS> particles_gpu, slice<Quad_Tree_Node>& nodes_gpu, Cuda_Error& err) {
+		uint32_t n = particles_gpu.length;
+		slice<morton_code> morton_codes_particles = arena_push_array<morton_code>(tmp_arena, n);
+
+		using counter = thrust::counting_iterator<uint32_t>;
+		auto compute = thrust::device;
+		bool is_host = false;
+
+		slice<Particle_AOS> particles;
+		slice<Quad_Tree_Node> nodes;
+
+		if (is_host) {
+			err |= cudaDeviceSynchronize();
+
+			particles = arena_push_array<Particle_AOS>(tmp_arena, particles_gpu.length);
+			err |= cudaMemcpy(particles.data, particles_gpu.data, (uint64_t)sizeof(Particle_AOS) * particles_gpu.length, cudaMemcpyDeviceToHost);
+
+			nodes = arena_push_array<Quad_Tree_Node>(tmp_arena, 2*n);
+		}
+		else {
+			particles = particles_gpu;
+			nodes = nodes_gpu;
+			nodes.length = 2 * n;
+		}
+
+		thrust::transform(compute, counter(0u), counter(n), morton_codes_particles.begin(),[=] CGPU(uint32_t i) {
+			vec3 pos = particles[i].position;
+			morton_code code = to_morton(pos.xy(), aabb);
+			return code;
+		});
+
+		uint32_t node_id_offset = 0;
+
+		slice<uint32_t> prefix_sum_morton_codes_low  = arena_push_array<uint32_t>(tmp_arena, n);
+		slice<uint32_t> prefix_sum_morton_codes_high = arena_push_array<uint32_t>(tmp_arena, n);
+		slice<uint32_t> prefix_sum_nodes             = arena_push_array<uint32_t>(tmp_arena, n+1);
+		slice<uint32_t> node_child_counts            = arena_push_array<uint32_t>(tmp_arena, n);
+
+		slice<vec4_highp> center_of_mass_prefix_sum = arena_push_array<vec4_highp>(tmp_arena, n);
+
+		thrust::fill_n(compute, node_child_counts.begin(), n, 0);
+
+		thrust::sort_by_key(compute, morton_codes_particles.begin(), morton_codes_particles.end(), particles.begin());
+
+		for (int depth = MAX_DEPTH; depth > 0; depth--) {			
+			morton_code mask_high = ((1ull << 2*(depth - 1)) - 1) << (MORTON_BITS_TOTAL - 2*(depth-1));
+			morton_code mask_low = ((1ull << 2*(depth)) - 1) << (MORTON_BITS_TOTAL - 2*depth);
+
+			auto mask_code = [](morton_code mask) {
+				return[mask] CGPU(morton_code code) {
+					return code & mask;
+				};
+			};
+
+			auto code_low_begin = thrust::make_transform_iterator(morton_codes_particles.begin(), mask_code(mask_low));
+			auto code_low_end = thrust::make_transform_iterator(morton_codes_particles.end(), mask_code(mask_low));
+
+			auto code_high_begin = thrust::make_transform_iterator(morton_codes_particles.begin(), mask_code(mask_high));
+			auto code_high_end   = thrust::make_transform_iterator(morton_codes_particles.end(), mask_code(mask_high));
+			
+			if (depth == MAX_DEPTH) {
+				thrust::inclusive_scan_by_key(compute, code_low_begin, code_low_end, thrust::make_constant_iterator(1u), prefix_sum_morton_codes_low.begin());
+			}
+			else {
+				std::swap(prefix_sum_morton_codes_low, prefix_sum_morton_codes_high);
+			}
+			thrust::inclusive_scan_by_key(compute, code_high_begin, code_high_end, thrust::make_constant_iterator(1u), prefix_sum_morton_codes_high.begin());
+
+			auto count_nodes = [=] CGPU (uint32_t i) {
+				if (i >= n) return 0u;
+				if (!(i == n - 1 || prefix_sum_morton_codes_high[i + 1] == 1)) return 0u;
+
+				uint32_t particle_count = prefix_sum_morton_codes_high[i];
+				if (!(particle_count > MAX_PARTICLES_PER_QUAD)) return 0u;
+
+				morton_code code_high = morton_codes_particles[i] & mask_high;
+
+				uint32_t child_node_count = 0;
+
+				int j = i;
+				for (uint32_t k = 0; k < 4 && j >= 0 && (morton_codes_particles[j] & mask_high) == code_high; k++) {
+					child_node_count++;
+					j -= prefix_sum_morton_codes_low[j];
+				}
+
+				return child_node_count;
+			};
+
+			//thrust::copy_if(compute, thrust::make_transform_iterator(counter(0u), count_nodes), thrust::make_transform_iterator(counter(n + 1), count_nodes), prefix_sum_nodes.begin());
+
+			thrust::exclusive_scan(compute, thrust::make_transform_iterator(counter(0u), count_nodes), thrust::make_transform_iterator(counter(n+1), count_nodes), prefix_sum_nodes.begin());
+
+			uint32_t level_node_count = 0;
+			cudaMemcpyAsync(&level_node_count, &prefix_sum_nodes[n], sizeof(uint32_t), is_host ? cudaMemcpyHostToHost : cudaMemcpyDeviceToHost);
+
+			vec2 aabb_extent = (1.0_R/(1<<depth))*(aabb.max - aabb.min);
+
+			thrust::for_each(compute, counter(0), counter(n), [=] CGPU (uint32_t i) mutable {
+				uint32_t child_count = prefix_sum_nodes[i + 1] - prefix_sum_nodes[i];
+				if (child_count == 0) return;
+
+				uint32_t offset = node_id_offset + prefix_sum_nodes[i];				
+				uint32_t total_child_node_count = 0;
+				vec4_highp total_center_of_mass = {};
+
+				int j = i;
+				for (uint32_t k = 0; k < child_count; k++) {
+					uint32_t child_count = node_child_counts[j];
+
+					morton_code code = morton_codes_particles[j] & mask_low;
+
+					Quad_Tree_Node& node = nodes[offset + k];
+					node.aabb.min = from_morton(code, aabb);
+					node.aabb.max = node.aabb.min + aabb_extent;
+					node.node_count = child_count;
+					node.particle_count = prefix_sum_morton_codes_low[j];
+					node.data = j+1 - node.particle_count;
+					node.morton = code | depth;
+
+					vec4_highp center_of_mass;
+					if (node.node_count == 0) {
+						for (uint32_t i = 0; i < node.particle_count; i++) {
+							const Particle_AOS& p = particles[node.data + i];
+							center_of_mass = center_of_mass + vec4_highp(p.mass * p.position, p.mass);
+						}
+
+						center_of_mass_prefix_sum[j] = center_of_mass;
+					}
+					else {
+						center_of_mass = center_of_mass_prefix_sum[j];
+					}
+
+					node.mass = center_of_mass.w;
+					node.center_of_mass = ((1.0 / center_of_mass.w) * center_of_mass).xyz();
+
+					j -= prefix_sum_morton_codes_low[j];
+					total_child_node_count += 1 + child_count;
+					total_center_of_mass = total_center_of_mass + center_of_mass;
+				}
+
+				node_child_counts[i] = total_child_node_count;
+				center_of_mass_prefix_sum[i] = total_center_of_mass;
+			});
+
+			cudaDeviceSynchronize();
+			node_id_offset += level_node_count;
+
+			//std::swap(prefix_sum_morton_codes_low, prefix_sum_morton_codes_high);
+		}	
+
+		Quad_Tree_Node root = {};
+		root.node_count = node_id_offset;
+		root.particle_count = particles.length;
+		root.aabb = aabb;
+		root.morton = 0;
+
+		cudaMemcpy(&nodes[node_id_offset], &root, sizeof(Quad_Tree_Node), is_host ? cudaMemcpyHostToHost : cudaMemcpyHostToDevice);
+		node_id_offset++;
+
+		nodes.length = node_id_offset;
+		thrust::sort(compute, nodes.begin(), nodes.end(), thrust::less<morton_code>());
+
+
+
+		auto center_of_mass = [=] CGPU(uint32_t i) {
+			Particle_AOS p = particles[i];
+			return vec4_highp(p.mass * p.position, p.mass);
+		};
+
+		/*auto center_of_mass_begin = thrust::make_transform_iterator(counter(0), center_of_mass);
+		auto center_of_mass_end   = thrust::make_transform_iterator(counter(n), center_of_mass);
+
+		thrust::inclusive_scan(compute, center_of_mass_begin, center_of_mass_end, center_of_mass_prefix_sum.begin());
+
+		thrust::for_each(compute, counter(0), counter(nodes.length), [=] CGPU(uint32_t i) mutable {
+			Quad_Tree_Node& node = nodes[i];
+			
+			vec4_highp center = center_of_mass_prefix_sum[node.data+node.particle_count-1] - (node.data==0 ? vec4_highp() : center_of_mass_prefix_sum[node.data-1]);
+			
+			nodes[i].mass = center.w;
+			nodes[i].center_of_mass = (1.0/center.w * center).xyz();
+		});*/
+
+		N_Body_Tree tree;
+		tree.nodes = nodes;
 		tree.aabb = aabb;
 
-		uint32_t node_counter = 0;
-		uint32_t particle_counter = 0;
-		N_Body_Tree_Divide_In task = { tree, node_counter, particle_counter, tmp_arena };
-		task.particles = particles_cpu;
-		task.particles_tmp = particles2_cpu;
-		task.particles_out = particles2_cpu;
-		task.aabb = tree.aabb;
+		if (is_host) {
+			err |= cudaMemcpy(particles_gpu.data, particles_gpu.data, (uint64_t)sizeof(Particle_AOS) * particles_gpu.length, cudaMemcpyHostToDevice);
+			err |= cudaMemcpy(nodes_gpu.data, tree.nodes.data, (uint64_t)sizeof(Quad_Tree_Node) * tree.nodes.length, cudaMemcpyHostToDevice);
+		}
 
-		build_quadtree(task);
 
-		tree.nodes.length = node_counter;
-
-		err |= cudaMemcpy(particles_out_gpu.data, particles2_cpu.data, (uint64_t)sizeof(Particle_AOS) * particles_in_gpu.length, cudaMemcpyHostToDevice);
-		err |= cudaMemcpy(nodes_gpu.data, tree.nodes.data, (uint64_t)sizeof(Quad_Tree_Node) * tree.nodes.length, cudaMemcpyHostToDevice);
 
 		return tree;
 	}
@@ -258,7 +408,7 @@ namespace reycode {
 
 		vec3 pos = particles[i].position;
 
-		real size = 1e-3 * particles[i].mass;
+		real size = 5e-3 * particles[i].mass;
 
 		for (uint32_t k = 0; k < 4; k++) {
 			mapped.vertices[4 * i + k] = quad_vertices[k];
@@ -304,7 +454,7 @@ namespace reycode {
 		uint32_t block_dim = 32;
 		uint32_t grid_dim = ceil_div(particles.length, block_dim);
 
-		gen_particle_vertex_buffer_kernel<<<grid_dim, block_dim>>>(mapped_arena, particles);
+		gen_particle_vertex_buffer_kernel<<<grid_dim, block_dim>>>(mapped, particles);
 		return sub_arena;
 	}
 
@@ -317,7 +467,7 @@ namespace reycode {
 		uint32_t block_dim = 32;
 		uint32_t grid_dim = ceil_div(nodes.length, block_dim);
 
-		gen_quad_tree_buffer_kernel<<<grid_dim, block_dim>>> (mapped_arena, nodes);
+		gen_quad_tree_buffer_kernel<<<grid_dim, block_dim>>> (mapped, nodes);
 
 		return sub_arena;
 	}
@@ -370,12 +520,13 @@ namespace reycode {
 		Particle_AOS& p = particles[i];
 		Particle_AOS& p_next = particles2[i];
 
+		p_next = p;
 		p_next.velocity = p.velocity + dt * p.acceleration;
 		p_next.position = p.position + dt * p_next.velocity;
 	}
 
 	void advance_gravity(slice<Quad_Tree_Node> nodes, Arena& tmp_arena, slice<Particle_AOS> particles, slice<Particle_AOS> particles2, Cuda_Error& err, real dt) {
-		const real max_ratio = 0.5;
+		const real max_ratio = 2.0;
 
 		uint32_t n = particles.length;
 
@@ -392,7 +543,7 @@ namespace reycode {
 
 		uint32_t num_centers = 2;
 		vec3 centers[2] = {
-			vec3(-1,-1,0), vec3(1,1,0)
+			vec3(-1,0,0), vec3(1,0,0)
 		};
 
 		real r = rngs[i * 3 + 0]; 
@@ -405,8 +556,9 @@ namespace reycode {
 
 		particles[i] = {};
 		particles[i].position = pos;
-		particles[i].mass = 10 * rngs[i*3 + 2];
+		particles[i].mass = 0.2 * (rngs[i*3 + 2] + 0.1);
 	}
+
 
 	int launch_nbody_viewer() {
 		uvec2 extent = { 4096,2048 };
@@ -449,17 +601,18 @@ namespace reycode {
 		Vertex_Arena vertex_quad_tree_arena;
 		Vertex_Arena vertex_tree_arena;
 
-		uint32_t n = 100; 
+		uint32_t n = 1e6;
 		slice<Particle_AOS> particles;
 		slice<Particle_AOS> particles2;
 		slice<Quad_Tree_Node> nodes;
 
 
-		{
-			particles = arena_push_array<Particle_AOS>(device_arena, n);
-			particles2 = arena_push_array<Particle_AOS>(device_arena, n);
-			nodes = arena_push_array<Quad_Tree_Node>(device_arena, 2*n);
+		particles = arena_push_array<Particle_AOS>(device_arena, n);
+		particles2 = arena_push_array<Particle_AOS>(device_arena, n);
+		nodes = arena_push_array<Quad_Tree_Node>(device_arena, 2 * n);
 
+
+		if(true) {
 			slice<real> rngs = arena_push_array<real>(device_arena, 3*n);
 
 			curandGenerator_t gen;
@@ -472,6 +625,18 @@ namespace reycode {
 			uint32_t grid_dim = ceil_div(n, block_dim);
 			init_galaxy_kernel << <grid_dim, block_dim >> > (particles, rngs);
 			err |= cudaDeviceSynchronize();
+		}
+		else {
+			Particle_AOS particles_cpu[4] = {};
+			particles_cpu[0].position = vec3(0.5, 0.5, 0);
+			particles_cpu[1].position = vec3(-0.5, 0.5, 0);
+			particles_cpu[2].position = vec3(0.5, -0.5, 0);
+			particles_cpu[3].position = vec3(-0.5, -0.5, 0);
+
+			for (uint32_t i = 0; i < 4; i++) particles_cpu[i].mass = 100;
+		
+			cudaMemcpy(particles.data, particles_cpu, 4 * sizeof(Particle_AOS), cudaMemcpyHostToDevice);
+			cudaMemcpy(particles2.data, particles_cpu, 4 * sizeof(Particle_AOS), cudaMemcpyHostToDevice);
 		}
 
 		AABB aabb = { vec2(-10.0_R), vec2(10.0_R) };
@@ -524,9 +689,8 @@ namespace reycode {
 			DEFER(vertex_buffer_cuda_unmap(desc, err));
 
 			real t0 = get_time();
-			N_Body_Tree tree = build_quad_tree(frame_arena, aabb, particles, particles2, nodes, err);
+			N_Body_Tree tree = build_quad_tree(frame_device_arena, aabb, particles,  nodes, err);
 			nodes.length = tree.nodes.length;
-			std::swap(particles, particles2);
 			printf("Build Tree %f, %i\n", 1000 * (get_time() - t0), nodes.length);
 
 			if (playing) {
@@ -536,17 +700,25 @@ namespace reycode {
 				for (uint32_t i = 0; i < sub_timesteps; i++) {
 					real t = get_time();
 					advance_gravity(nodes, frame_arena, particles, particles2, err, sim_dt);
+					
+					//debug_view_device_values(particles, 100);
+					//debug_view_device_values(particles2, 100);
+					
 					std::swap(particles, particles2);
-					cudaDeviceSynchronize();
+					//cudaDeviceSynchronize();
 					printf("Advance gravity %f\n", 1000 * (get_time() - t));
 				}
 			}
 
 			real t2 = get_time();
+			
+			//vertex_quad_tree_arena = gen_quad_tree_vertex_buffer(mapped, frame_device_arena, nodes);
+			//cudaDeviceSynchronize();
+			
 			vertex_particle_arena = gen_particle_vertex_buffer(mapped, frame_device_arena, particles);
 			cudaDeviceSynchronize();
 			printf("Gen Particle %f\n", 1000 * (get_time() - t2));
-			vertex_quad_tree_arena = gen_quad_tree_vertex_buffer(mapped, frame_device_arena, nodes);
+			
 
 			{
 				glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

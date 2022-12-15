@@ -284,6 +284,10 @@ namespace reycode {
 		return { a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w };
 	}
 
+	INL_CGPU_CONST vec4 operator-(vec4 a, vec4 b) {
+		return { a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w };
+	}
+
 	INL_CGPU_CONST vec4 operator*(real a, vec4 b) {
 		return { a * b.x, a * b.y, a * b.z, a * b.w };
 	}

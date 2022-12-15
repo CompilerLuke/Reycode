@@ -6,8 +6,8 @@ AdditionalDeps=
 AdditionalLibraryDirectories=
 AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60 --Werror=cross-execution-space-call
 AdditionalOptions=--extended-lambda -gencode arch=compute_60,code=compute_60 --Werror=cross-execution-space-call
-CodeGeneration=compute_52,sm_52
-CodeGeneration=compute_52,sm_52
+CodeGeneration=compute_60,sm_60;compute_52,sm_52
+CodeGeneration=compute_60,sm_60;compute_52,sm_52
 CompileOut=C:\Users\User\source\repos\Reycode\Reycode\x64\Release\mesh.cu.obj
 CudaRuntime=Static
 CudaToolkitCustomDir=
@@ -19,7 +19,7 @@ EnableVirtualArchInFatbin=true
 ExtensibleWholeProgramCompilation=false
 FastMath=false
 GenerateLineInfo=false
-GenerateRelocatableDeviceCode=false
+GenerateRelocatableDeviceCode=true
 GPUDebugInfo=false
 GPUDebugInfo=false
 HostDebugInfo=false
