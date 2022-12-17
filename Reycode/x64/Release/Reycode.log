@@ -9,11 +9,11 @@ C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(138): w
   
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(139): warning #174-D: expression has no effect
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(333): warning #177-D: variable "center_of_mass" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(334): warning #177-D: variable "center_of_mass" was declared but never referenced
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(531): warning #177-D: variable "n" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(564): warning #177-D: variable "n" was declared but never referenced
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(602): warning #177-D: variable "vertex_tree_arena" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(645): warning #177-D: variable "vertex_tree_arena" was declared but never referenced
   
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(34): warning #177-D: variable "reycode::NODE_HAS_CHILDREN_FLAG" was declared but never referenced
   
@@ -25,11 +25,11 @@ C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(138): w
   
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(139): warning #174-D: expression has no effect
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(333): warning #177-D: variable "center_of_mass" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(334): warning #177-D: variable "center_of_mass" was declared but never referenced
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(531): warning #177-D: variable "n" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(564): warning #177-D: variable "n" was declared but never referenced
   
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(602): warning #177-D: variable "vertex_tree_arena" was declared but never referenced
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(645): warning #177-D: variable "vertex_tree_arena" was declared but never referenced
   
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(34): warning #177-D: variable "reycode::NODE_HAS_CHILDREN_FLAG" was declared but never referenced
   
@@ -51,18 +51,18 @@ C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(138): w
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(139): warning C4552: '<<': result of expression not used
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(141): warning C4244: 'argument': conversion from 'double' to 'reycode::real', possible loss of data
 C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(141): warning C4244: 'argument': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(301): warning C4244: '=': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(475): warning C4305: 'initializing': truncation from 'double' to 'const reycode::real'
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(604): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(665): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(667): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(668): warning C4244: '=': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(691): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(698): warning C4305: 'initializing': truncation from 'double' to 'reycode::real'
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(701): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
-C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(713): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
-C:/Users/User/source/repos/Reycode/Reycode/src\reycode/reycode.h(707): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
-  C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(171): note: see reference to function template instantiation 'reycode::slice<unsigned __int64> reycode::arena_push_array<unsigned __int64>(reycode::Arena &,size_t,size_t)' being compiled
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(302): warning C4244: '=': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(499): warning C4305: 'initializing': truncation from 'double' to 'const reycode::real'
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(647): warning C4244: 'initializing': conversion from 'double' to 'uint32_t', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(708): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(710): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(711): warning C4244: '=': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(734): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(741): warning C4305: 'initializing': truncation from 'double' to 'reycode::real'
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(744): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
+C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(756): warning C4244: 'initializing': conversion from 'double' to 'reycode::real', possible loss of data
+C:/Users/User/source/repos/Reycode/Reycode/src\reycode/reycode.h(711): warning C4267: '=': conversion from 'size_t' to 'uint32_t', possible loss of data
+  C:\Users\User\source\repos\Reycode\Reycode\src\reycode\examples\nbody.cu(172): note: see reference to function template instantiation 'reycode::slice<unsigned __int64> reycode::arena_push_array<unsigned __int64>(reycode::Arena &,size_t,size_t)' being compiled
   
   C:\Users\User\source\repos\Reycode\Reycode>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\bin\nvcc.exe" -dlink -o x64\Release\Reycode.device-link.obj -Xcompiler "/EHsc /W3 /nologo /O2 /FdC:\Users\User\source\repos\Reycode\x64\Release\Reycode.pdb   /MD " -L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\bin/crt" -L"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.7\lib\x64" "C:\Users\User\Desktop\Game Engine\OpenGl libraries and headers\Libs\glfw3.lib" cudart_static.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib cudart.lib cudadevrt.lib  -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_52,code=sm_52  --machine 64 C:\Users\User\source\repos\Reycode\Reycode\x64\Release\nbody.cu.obj C:\Users\User\source\repos\Reycode\Reycode\x64\Release\shallow_water.cu.obj C:\Users\User\source\repos\Reycode\Reycode\x64\Release\mesh.cu.obj C:\Users\User\source\repos\Reycode\Reycode\x64\Release\ns3d.cu.obj C:\Users\User\source\repos\Reycode\Reycode\x64\Release\cross_section.cu.obj 
   glfw3.lib
@@ -89,50 +89,43 @@ C:/Users/User/source/repos/Reycode/Reycode/src\reycode/reycode.h(707): warning C
   Reycode.vcxproj -> C:\Users\User\source\repos\Reycode\x64\Release\Reycode.lib
 
 Project Performance Summary:
-    46985 ms  C:\Users\User\source\repos\Reycode\Reycode\Reycode.vcxproj   6 calls
-              25184 ms  Build                                      1 calls
-              21801 ms  CudaBuildCore                              5 calls
+    47558 ms  C:\Users\User\source\repos\Reycode\Reycode\Reycode.vcxproj   6 calls
+              25450 ms  Build                                      1 calls
+              22109 ms  CudaBuildCore                              5 calls
 
 Target Performance Summary:
         0 ms  Build                                      1 calls
-        0 ms  ComputeCLGeneratedLibInputs                1 calls
-        0 ms  ComputeCLOutputs                           1 calls
-        0 ms  ComputeRCGeneratedLibInputs                1 calls
-        0 ms  ComputeRCOutputs                           1 calls
-        0 ms  ComputeLibAdditionalOptions                1 calls
         0 ms  BeforeLib                                  1 calls
         0 ms  _ResourceCompile                           1 calls
         0 ms  AfterResourceCompile                       1 calls
+        0 ms  SplitResourcesByCulture                    1 calls
         0 ms  BeforeResourceCompile                      1 calls
         0 ms  _ClCompile                                 1 calls
-        0 ms  ComputeLibInputsFromProject                1 calls
         0 ms  AfterClCompile                             1 calls
+        0 ms  CreateCustomManifestResourceNames          1 calls
         0 ms  SelectClCompile                            1 calls
-        0 ms  _Appverifier                               1 calls
+        0 ms  MakeDirsForCl                              1 calls
+        0 ms  PrepareResourceNames                       1 calls
+        0 ms  SatelliteDllsProjectOutputGroup            1 calls
         0 ms  ComputeReferenceCLInput                    1 calls
         0 ms  GetReferencedVCProjectsInfo                1 calls
         0 ms  FindReferenceAssembliesForReferences       1 calls
         0 ms  ComputeCLInputPDBName                      1 calls
         0 ms  BeforeClCompile                            1 calls
         0 ms  BuildCompileTraverse                       1 calls
-        0 ms  MakeDirsForFxc                             1 calls
+        0 ms  BuildGenerateSources                       1 calls
         0 ms  _BuildGenerateSourcesAction                1 calls
-        0 ms  FinalizeBuildStatus                        1 calls
         0 ms  AfterBuildGenerateSourcesEvent             1 calls
-        0 ms  MakeDirsForLib                             1 calls
-        0 ms  PreLinkEvent                               1 calls
-        0 ms  SatelliteDllsProjectOutputGroup            1 calls
-        0 ms  PrepareResourceNames                       1 calls
-        0 ms  CreateCustomManifestResourceNames          1 calls
-        0 ms  AssignTargetPaths                          1 calls
-        0 ms  _BscMake                                   1 calls
-        0 ms  MakeDirsForBscMake                         1 calls
-        0 ms  ComputeCLCompileGeneratedSbrFiles          1 calls
+        0 ms  ComputeLibAdditionalOptions                1 calls
+        0 ms  AfterBuildGenerateSources                  1 calls
+        0 ms  ComputeRCOutputs                           1 calls
+        0 ms  ComputeCLOutputs                           1 calls
         0 ms  _XdcMake                                   1 calls
         0 ms  MakeDirsForXdcMake                         1 calls
         0 ms  ComputeCLCompileGeneratedXDCFiles          1 calls
-        0 ms  DoLibOutputFilesMatch                      1 calls
         0 ms  ResolvedXDCMake                            1 calls
+        0 ms  RegisterOutput                             1 calls
+        0 ms  _Manifest                                  1 calls
         0 ms  _ALink                                     1 calls
         0 ms  ComputeLegacyManifestEmbedding             1 calls
         0 ms  BuildLinkTraverse                          1 calls
@@ -141,88 +134,95 @@ Target Performance Summary:
         0 ms  AfterBuildCompileEvent                     1 calls
         0 ms  _Lib                                       1 calls
         0 ms  AfterLib                                   1 calls
-        0 ms  _GenerateSatelliteAssemblyInputs           1 calls
-        0 ms  CreateSatelliteAssemblies                  1 calls
-        0 ms  RegisterOutput                             1 calls
-        0 ms  AfterBuildGenerateSources                  1 calls
-        0 ms  BuildGenerateSources                       1 calls
-        0 ms  AfterMidl                                  1 calls
-        0 ms  BeforeBuildGenerateSources                 1 calls
+        0 ms  _BscMake                                   1 calls
+        0 ms  BuiltProjectOutputGroup                    1 calls
+        0 ms  PreLinkEvent                               1 calls
+        0 ms  DoLibOutputFilesMatch                      1 calls
+        0 ms  MakeDirsForLib                             1 calls
+        0 ms  ComputeLibInputsFromProject                1 calls
+        0 ms  ComputeCLGeneratedLibInputs                1 calls
+        0 ms  ComputeRCGeneratedLibInputs                1 calls
+        0 ms  ComputeCLCompileGeneratedSbrFiles          1 calls
         0 ms  _Midl                                      1 calls
-        0 ms  _BuildLinkAction                           1 calls
-        0 ms  ResolveReferences                          1 calls
-        0 ms  AfterResolveReferences                     1 calls
+        0 ms  ComputeMIDLGeneratedCompileInputs          1 calls
+        0 ms  ResolveAssemblyReferences                  1 calls
         0 ms  ExpandSDKReferences                        1 calls
         0 ms  ResolveSDKReferences                       1 calls
+        0 ms  PrepareForRun                              1 calls
         0 ms  SetCABuildNativeEnvironmentVariables       1 calls
+        0 ms  _CheckWindowsSDKInstalled                  1 calls
         0 ms  GetResolvedWinMD                           1 calls
-        0 ms  BuildLink                                  1 calls
-        0 ms  AfterBuild                                 1 calls
+        0 ms  PostBuildEvent                             1 calls
+        0 ms  _BuildLinkAction                           1 calls
         0 ms  GetReferenceAssemblyPaths                  1 calls
         0 ms  GetFrameworkPaths                          1 calls
         0 ms  ResolveProjectReferences                   1 calls
         0 ms  PrepareProjectReferences                   1 calls
+        0 ms  BuildLink                                  1 calls
         0 ms  _AddOutputPathToGlobalPropertiesToRemove   1 calls
         0 ms  _SplitProjectReferencesByFileExistence     1 calls
-        0 ms  AssignProjectConfiguration                 1 calls
+        0 ms  AfterBuild                                 1 calls
         0 ms  BeforeResolveReferences                    1 calls
+        0 ms  _PrepareForReferenceResolution             1 calls
         0 ms  _PrepareForBuild                           1 calls
-        0 ms  SetTelemetryEnvironmentVariables           1 calls
-        0 ms  PreBuildEvent                              1 calls
-        0 ms  _SelectedFiles                             1 calls
+        0 ms  IncrementalClean                           1 calls
+        0 ms  AfterResolveReferences                     1 calls
+        0 ms  AfterMidl                                  1 calls
+        0 ms  ResolveReferences                          1 calls
         0 ms  BuildGenerateSourcesTraverse               1 calls
-        0 ms  ContentFilesProjectOutputGroup             1 calls
-        0 ms  GetCopyToOutputDirectoryXamlAppDefs        1 calls
-        0 ms  _GetCopyToOutputDirectoryItemsFromTransitiveProjectReferences   1 calls
-        0 ms  _CopySourceItemsToOutputDirectory          1 calls
-        0 ms  SelectCustomBuild                          1 calls
-        0 ms  ValidateCudaBuild                          1 calls
-        0 ms  _CheckForCompileOutputs                    1 calls
-        0 ms  _Deploy                                    1 calls
         0 ms  MakeDirsForMidl                            1 calls
         0 ms  _Xsd                                       1 calls
-        0 ms  PrepareForRun                              1 calls
-        0 ms  ComputeMIDLGeneratedCompileInputs          1 calls
-        0 ms  PostBuildEvent                             1 calls
-        0 ms  InitializeCudaHostProperties               1 calls
+        0 ms  CopyFileToFolders                          1 calls
+        0 ms  MakeDirsForFxc                             1 calls
+        0 ms  CreateRecipeFile                           1 calls
+        0 ms  _GenerateSatelliteAssemblyInputs           1 calls
+        0 ms  CreateSatelliteAssemblies                  1 calls
+        0 ms  _Appverifier                               1 calls
+        0 ms  ValidateCudaBuild                          1 calls
+        0 ms  _Deploy                                    1 calls
+        0 ms  _PopulateCommonStateForGetCopyToOutputDirectoryItems   1 calls
+        0 ms  GetCopyToOutputDirectoryXamlAppDefs        1 calls
+        0 ms  _GetCopyToOutputDirectoryItemsFromTransitiveProjectReferences   1 calls
+        0 ms  InitializeCudaProjectProperties            1 calls
+        0 ms  _GetCopyToOutputDirectoryItemsFromThisProject   1 calls
+        0 ms  _CopySourceItemsToOutputDirectory          1 calls
         0 ms  CustomBuild                                1 calls
+        0 ms  _CheckForCompileOutputs                    1 calls
+        0 ms  SelectCustomBuild                          1 calls
+        0 ms  _SelectedFiles                             1 calls
+        0 ms  PreBuildEvent                              1 calls
+        0 ms  BeforeBuildGenerateSources                 1 calls
         0 ms  CopyFilesToOutputDirectory                 1 calls
-        1 ms  MakeDirsForResourceCompile                 1 calls
-        1 ms  MakeDirsForCl                              1 calls
-        1 ms  _PrepareForReferenceResolution             1 calls
-        1 ms  SplitResourcesByCulture                    1 calls
-        1 ms  WarnCompileDuplicatedFilename              1 calls
-        1 ms  ResolveAssemblyReferences                  1 calls
-        1 ms  _PopulateCommonStateForGetCopyToOutputDirectoryItems   1 calls
-        1 ms  AddCudaCompilePropsDeps                    5 calls
-        1 ms  ComputeCudaLinkOutput                      1 calls
-        1 ms  IncrementalClean                           1 calls
-        1 ms  _Manifest                                  1 calls
-        1 ms  ComputeCustomBuildOutput                   1 calls
-        1 ms  PrepareForBuild                            1 calls
-        1 ms  InitializeCudaProjectProperties            1 calls
-        1 ms  ValidateCudaCodeGeneration                 5 calls
-        1 ms  _CheckWindowsSDKInstalled                  1 calls
-        1 ms  CreateRecipeFile                           1 calls
+        0 ms  MakeDirsForBscMake                         1 calls
+        1 ms  AssignTargetPaths                          1 calls
         1 ms  _CheckForInvalidConfigurationAndPlatform   1 calls
-        1 ms  CopyFileToFolders                          1 calls
-        1 ms  GetCopyToOutputDirectoryItems              1 calls
-        1 ms  _GetCopyToOutputDirectoryItemsFromThisProject   1 calls
-        1 ms  InitializeBuildStatus                      1 calls
-        1 ms  _GetProjectReferenceTargetFrameworkProperties   1 calls
-        1 ms  BuiltProjectOutputGroup                    1 calls
+        1 ms  ValidateCudaCodeGeneration                 5 calls
+        1 ms  AddExternalIncludDirectoriesToPaths        6 calls
+        1 ms  ComputeCudaLinkOutput                      1 calls
         1 ms  _CleanGetCurrentAndPriorFileWrites         1 calls
+        1 ms  GetCopyToOutputDirectoryItems              1 calls
+        1 ms  ContentFilesProjectOutputGroup             1 calls
+        1 ms  FinalizeBuildStatus                        1 calls
+        1 ms  ComputeCustomBuildOutput                   1 calls
+        1 ms  InitializeCudaHostProperties               1 calls
+        1 ms  SetTelemetryEnvironmentVariables           1 calls
+        1 ms  MakeDirsForResourceCompile                 1 calls
+        1 ms  AssignProjectConfiguration                 1 calls
+        1 ms  _GetProjectReferenceTargetFrameworkProperties   1 calls
+        1 ms  WarnCompileDuplicatedFilename              1 calls
         1 ms  ComputeCudaCompileOutput                   5 calls
-        2 ms  AddExternalIncludDirectoriesToPaths        6 calls
         2 ms  FixupCLCompileOptions                      1 calls
-        3 ms  SetBuildDefaultEnvironmentVariables        6 calls
-        4 ms  PrepareForCudaBuild                        6 calls
-        7 ms  AddCudaLinkMetadata                        5 calls
-        8 ms  AddCudaCompileMetadata                     5 calls
-       13 ms  WriteCudaCompileTlogs                      1 calls
-       20 ms  ClCompile                                  1 calls
-      178 ms  Lib                                        1 calls
-     1030 ms  AddCudaCompileDeps                         5 calls
-     2091 ms  CudaLink                                   1 calls
-    21790 ms  CudaBuildCore                              5 calls
-    21809 ms  CudaBuild                                  1 calls
+        2 ms  PrepareForBuild                            1 calls
+        2 ms  AddCudaCompilePropsDeps                    5 calls
+        2 ms  InitializeBuildStatus                      1 calls
+        5 ms  SetBuildDefaultEnvironmentVariables        6 calls
+        5 ms  PrepareForCudaBuild                        6 calls
+        8 ms  AddCudaLinkMetadata                        5 calls
+       12 ms  AddCudaCompileMetadata                     5 calls
+       12 ms  WriteCudaCompileTlogs                      1 calls
+       13 ms  ClCompile                                  1 calls
+      179 ms  Lib                                        1 calls
+     1034 ms  AddCudaCompileDeps                         5 calls
+     2041 ms  CudaLink                                   1 calls
+    22098 ms  CudaBuildCore                              5 calls
+    22121 ms  CudaBuild                                  1 calls

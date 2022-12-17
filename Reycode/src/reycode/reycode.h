@@ -246,6 +246,10 @@ namespace reycode {
 		return sqrt(v.x * v.x + v.y * v.y);
 	}
 
+	INL_CGPU_CONST real sq(vec2 a) {
+		return a.x * a.x + a.y * a.y;
+	}
+
 	struct vec3 {
 		real x, y, z;
 

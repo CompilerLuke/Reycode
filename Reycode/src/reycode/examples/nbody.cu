@@ -15,9 +15,9 @@
 
 namespace reycode {
 	struct Particle_AOS {
-		vec3 position;
-		vec3 velocity;
-		vec3 acceleration;
+		vec2 position;
+		vec2 velocity;
+		vec2 acceleration;
 		real mass;
 	};
 
@@ -26,7 +26,7 @@ namespace reycode {
 		vec2 max;
 	};
 
-	constexpr uint32_t MAX_PARTICLES_PER_QUAD = 32; // 1024; // 2048;
+	constexpr uint32_t MAX_PARTICLES_PER_QUAD = 64; // 1024; // 2048;
 
 	using quad_tree_node_handle = uint32_t;
 	using quad_tree_data_handle = uint32_t;
@@ -43,7 +43,7 @@ namespace reycode {
 
 	struct Quad_Tree_Node {
 		AABB aabb;
-		vec3 center_of_mass;
+		vec2 center_of_mass;
 		real mass;
 		uint32_t particle_count;
 		uint32_t node_count;
@@ -78,7 +78,7 @@ namespace reycode {
 	AABB update_aabb(slice<Particle_AOS> particles) {
 		AABB aabb = { vec2(FLT_MAX), vec2(-FLT_MAX) };
 		for (const Particle_AOS& particle : particles) {
-			vec3 pos = particle.position;
+			vec2 pos = particle.position;
 
 			aabb.min.x = min(aabb.min.x, pos.x);
 			aabb.min.y = min(aabb.min.y, pos.y);
@@ -144,26 +144,27 @@ namespace reycode {
 		);
 	}
 
-	struct vec4_highp {
-		double x, y, z, w;
+	struct vec3_highp {
+		double x, y, z;
 
-		CGPU vec4_highp() : x(0), y(0), z(0), w(0) {}
-		CGPU vec4_highp(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
-		CGPU vec4_highp(vec3 xyz, double w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
+		CGPU vec3_highp() : x(0), y(0), z(0) {}
+		CGPU vec3_highp(double x, double y, double z) : x(x), y(y), z(z)  {}
+		CGPU vec3_highp(vec2 xy, double z) : x(xy.x), y(xy.y), z(z) {}
 
-		CGPU vec3 xyz() { return { (real)x,(real)y,(real)z }; }
+		CGPU vec2 xy() { return { (real)x,(real)y }; }
 	};
 
-	CGPU vec4_highp operator*(double a, vec4_highp b) {
-		return { a * b.x,a * b.y,a * b.z,a * b.w };
+	CGPU vec3_highp operator*(double a, vec3_highp b) {
+		return { a * b.x,a * b.y,a * b.z };
 	}
 
-	CGPU vec4_highp operator+(vec4_highp a, vec4_highp b) {
-		return { a.x + b.x,a.y + b.y,a.z + b.z,a.w + b.w };
+	CGPU vec3_highp operator+(vec3_highp a, vec3_highp b) {
+		return { a.x + b.x,a.y + b.y,a.z + b.z };
 	}
 
-	CGPU vec4_highp operator-(vec4_highp a, vec4_highp b) {
-		return { a.x - b.x,a.y - b.y,a.z - b.z,a.w - b.w };
+
+	CGPU vec3_highp operator-(vec3_highp a, vec3_highp b) {
+		return { a.x - b.x,a.y - b.y,a.z - b.z };
 	}
 
 	N_Body_Tree build_quad_tree(Arena& tmp_arena, AABB aabb, slice<Particle_AOS> particles_gpu, slice<Quad_Tree_Node>& nodes_gpu, Cuda_Error& err) {
@@ -192,8 +193,8 @@ namespace reycode {
 		}
 
 		thrust::transform(compute, counter(0u), counter(n), morton_codes_particles.begin(),[=] CGPU(uint32_t i) {
-			vec3 pos = particles[i].position;
-			morton_code code = to_morton(pos.xy(), aabb);
+			vec2 pos = particles[i].position;
+			morton_code code = to_morton(pos, aabb);
 			return code;
 		});
 
@@ -204,7 +205,7 @@ namespace reycode {
 		slice<uint32_t> prefix_sum_nodes             = arena_push_array<uint32_t>(tmp_arena, n+1);
 		slice<uint32_t> node_child_counts            = arena_push_array<uint32_t>(tmp_arena, n);
 
-		slice<vec4_highp> center_of_mass_prefix_sum = arena_push_array<vec4_highp>(tmp_arena, n);
+		slice<vec3_highp> center_of_mass_prefix_sum = arena_push_array<vec3_highp>(tmp_arena, n);
 
 		thrust::fill_n(compute, node_child_counts.begin(), n, 0);
 
@@ -269,7 +270,7 @@ namespace reycode {
 
 				uint32_t offset = node_id_offset + prefix_sum_nodes[i];				
 				uint32_t total_child_node_count = 0;
-				vec4_highp total_center_of_mass = {};
+				vec3_highp total_center_of_mass = {};
 
 				int j = i;
 				for (uint32_t k = 0; k < child_count; k++) {
@@ -285,11 +286,11 @@ namespace reycode {
 					node.data = j+1 - node.particle_count;
 					node.morton = code | depth;
 
-					vec4_highp center_of_mass;
+					vec3_highp center_of_mass;
 					if (node.node_count == 0) {
 						for (uint32_t i = 0; i < node.particle_count; i++) {
 							const Particle_AOS& p = particles[node.data + i];
-							center_of_mass = center_of_mass + vec4_highp(p.mass * p.position, p.mass);
+							center_of_mass = center_of_mass + vec3_highp(p.mass * p.position, p.mass);
 						}
 
 						center_of_mass_prefix_sum[j] = center_of_mass;
@@ -298,8 +299,8 @@ namespace reycode {
 						center_of_mass = center_of_mass_prefix_sum[j];
 					}
 
-					node.mass = center_of_mass.w;
-					node.center_of_mass = ((1.0 / center_of_mass.w) * center_of_mass).xyz();
+					node.mass = center_of_mass.z;
+					node.center_of_mass = ((1.0 / center_of_mass.z) * center_of_mass).xy();
 
 					j -= prefix_sum_morton_codes_low[j];
 					total_child_node_count += 1 + child_count;
@@ -332,7 +333,7 @@ namespace reycode {
 
 		auto center_of_mass = [=] CGPU(uint32_t i) {
 			Particle_AOS p = particles[i];
-			return vec4_highp(p.mass * p.position, p.mass);
+			return vec3_highp(p.mass * p.position, p.mass);
 		};
 
 		/*auto center_of_mass_begin = thrust::make_transform_iterator(counter(0), center_of_mass);
@@ -363,7 +364,35 @@ namespace reycode {
 		return tree;
 	}
 
-	static constexpr const char* vertex_shader_text =
+	static constexpr const char* vertex_shader_particle_text =
+		"#version 330\n"
+		"uniform mat4 MVP;\n"
+		"in vec3 v_pos;\n"
+		"in vec3 v_normal;\n"
+		"in vec3 v_color;\n"
+		"out vec3 f_pos;\n"
+		"out vec3 f_color;\n"
+		"void main()\n"
+		"{\n"
+		"    gl_PointSize = v_normal.x;\n"
+		"    f_pos = v_pos;\n"
+		"    f_color = v_color;\n"
+		"    gl_Position = MVP * vec4(v_pos, 1.0);\n"
+		"}\n";
+
+	static constexpr const char* face_fragment_shader_particle_text =
+		"#version 330\n"
+		"out vec4 fragment;\n"
+		"in vec3 f_normal;\n"
+		"in vec3 f_pos;\n"
+		"in vec3 f_color;\n"
+		"uniform vec3 dir_light;\n"
+		"void main()\n"
+		"{\n"
+		"   fragment = vec4(f_color, 0.5);\n"
+		"}\n";
+
+	static constexpr const char* vertex_shader_tree_text =
 		"#version 330\n"
 		"uniform mat4 MVP;\n"
 		"in vec3 v_pos;\n"
@@ -380,7 +409,8 @@ namespace reycode {
 		"    gl_Position = MVP * vec4(v_pos, 1.0);\n"
 		"}\n";
 
-	static constexpr const char* face_fragment_shader_text =
+
+	static constexpr const char* face_fragment_shader_tree_text =
 		"#version 330\n"
 		"out vec4 fragment;\n"
 		"in vec3 f_normal;\n"
@@ -389,33 +419,25 @@ namespace reycode {
 		"uniform vec3 dir_light;\n"
 		"void main()\n"
 		"{\n"
-		"   vec3 diffuse = vec3(f_color);\n"
-		"   vec3 color = diffuse * (0.3 + 0.7*max(vec3(0),dot(-f_normal, dir_light)));\n"
-		"   fragment = vec4(color, 1.0);\n"
+		"   fragment = vec4(f_color, 1.0);\n"
 		"}\n";
 
-	__global__ void gen_particle_vertex_buffer_kernel(Vertex_Arena_Mapped mapped, slice<Particle_AOS> particles) {
+	__global__ void gen_particle_vertex_buffer_kernel(Vertex_Arena_Mapped mapped, Colormap cm, slice<Particle_AOS> particles) {
 		uint32_t i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= particles.length) return;
 
-		constexpr Vertex quad_vertices[4] = {
-			{vec3(-0.5,-0.5,0), vec3(0,0,1), vec3(1,1,1) },
-			{vec3(0.5,-0.5,0), vec3(0,0,1), vec3(1,1,1) },
-			{vec3(0.5,0.5,0), vec3(0,0,1), vec3(1,1,1) },
-			{vec3(-0.5,0.5,0), vec3(0,0,1), vec3(1,1,1) },
-		};
-		constexpr uint32_t quad_indices[6] = { 0,1,2,0,2,3 };
+		vec2 pos = particles[i].position;
 
-		vec3 pos = particles[i].position;
+		real size = 3e-3 * particles[i].mass;
+		vec3 color = color_map(cm, length(particles[i].velocity), 0, 300);
 
-		real size = 5e-3 * particles[i].mass;
+		Vertex vertex = {};
+		vertex.color = color;
+		vertex.normal = vec3(size, 0, 0);
+		vertex.pos = vec3(pos,0);
 
-		for (uint32_t k = 0; k < 4; k++) {
-			mapped.vertices[4 * i + k] = quad_vertices[k];
-			mapped.vertices[4 * i + k].pos = size * quad_vertices[k].pos + pos;
-		}
-
-		for (uint32_t k = 0; k < 6; k++) mapped.indices[6 * i + k] = 4 * i + quad_indices[k];
+		mapped.vertices[i] = vertex;
+		mapped.indices[i] = i;
 	}
 
 	__global__ void gen_quad_tree_buffer_kernel(Vertex_Arena_Mapped mapped, slice<Quad_Tree_Node> nodes) {
@@ -448,13 +470,15 @@ namespace reycode {
 	Vertex_Arena gen_particle_vertex_buffer(Vertex_Arena_Mapped& mapped_arena, Arena& tmp_arena, slice<Particle_AOS> particles) {
 		uint32_t n = particles.length;
 
-		Vertex_Arena sub_arena = vertex_arena_push(mapped_arena.arena, 4 * n, 6 * n);
+		Vertex_Arena sub_arena = vertex_arena_push(mapped_arena.arena, n, n);
 		Vertex_Arena_Mapped mapped = vertex_arena_submap(mapped_arena, sub_arena);
+
+		Colormap colormap = viridis_cm();
 
 		uint32_t block_dim = 32;
 		uint32_t grid_dim = ceil_div(particles.length, block_dim);
 
-		gen_particle_vertex_buffer_kernel<<<grid_dim, block_dim>>>(mapped, particles);
+		gen_particle_vertex_buffer_kernel<<<grid_dim, block_dim>>>(mapped, colormap, particles);
 		return sub_arena;
 	}
 
@@ -474,31 +498,40 @@ namespace reycode {
 
 	constexpr real G = 1e-1;
 
-	CGPU void compute(slice<Quad_Tree_Node> nodes, real max_ratio, slice<Particle_AOS> particles, uint32_t node_id) {
-		Particle_AOS& p = particles[node_id];
+	constexpr uint32_t FULL_MASK = 0xffffffff;
 
-		vec3 position = p.position;
-		vec3 result = {};
+	__device__ void compute(slice<Quad_Tree_Node> nodes, real max_ratio, slice<Particle_AOS> particles, uint32_t particle_id) {
+		Particle_AOS& p = particles[particle_id];
+
+		vec2 position = p.position;
+		vec2 result = {};
 
 		for (uint32_t node_id = 0; node_id < nodes.length; node_id++) {
+			//Quad_Tree_Node node = nodes[node_id];
+
 			Quad_Tree_Node node = nodes[node_id];
 
-			vec2 size = node.aabb.max - node.aabb.min;
-			vec3 center = node.center_of_mass;
-
-			vec3 coarse = -G * node.mass / sq(center - position) * (position - center);
+			AABB aabb = node.aabb;
+			vec2 center = node.center_of_mass;
+			real mass = node.mass;
+			vec2 size = aabb.max - aabb.min;
 
 			real ratio = length(vec2(center.x - position.x, center.y - position.y) / size);
-			if (ratio > max_ratio) {
+
+			uint32_t skip_mask = __ballot_sync(FULL_MASK, ratio > max_ratio);
+
+			if (skip_mask == FULL_MASK) {
+				vec2 coarse = -G * mass / sq(center - position) * (position - center);
 				result += coarse;
 				node_id += node.node_count;
 			}
-			else if (quad_node_is_leaf(node)) {
+			else if (node.node_count == 0) {
 				for (uint32_t i = 0; i < node.particle_count; i++) {
-					if (node.data + i == node_id) continue;
-					Particle_AOS& particle = particles[node.data + i];
-					vec3 center = particle.position;
-					result += -G * particle.mass / (FLT_EPSILON + sq(center - position)) * (position - center);
+					if (node.data + i != particle_id) {
+						Particle_AOS& particle = particles[node.data + i];
+						vec2 center = particle.position;
+						result += -G * particle.mass / (FLT_EPSILON + sq(center - position)) * (position - center);
+					}
 				}
 			}
 		}
@@ -526,7 +559,7 @@ namespace reycode {
 	}
 
 	void advance_gravity(slice<Quad_Tree_Node> nodes, Arena& tmp_arena, slice<Particle_AOS> particles, slice<Particle_AOS> particles2, Cuda_Error& err, real dt) {
-		const real max_ratio = 2.0;
+		const real max_ratio = 1.5;
 
 		uint32_t n = particles.length;
 
@@ -541,22 +574,29 @@ namespace reycode {
 		uint32_t i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= particles.length) return;
 
-		uint32_t num_centers = 2;
-		vec3 centers[2] = {
-			vec3(-1,0,0), vec3(1,0,0)
+		uint32_t num_centers = 4;
+		vec2 centers[4] = {
+			vec2(-1,0), vec2(1,0), vec2(0,1), vec2(0,-1)
 		};
 
 		real r = rngs[i * 3 + 0]; 
 		real theta = 2*PI*rngs[i * 3 + 1];
 
-		vec3 pos = {};
+		vec2 pos = {};
 		pos.x = r * cos(theta);
 		pos.y = r * sin(theta);
 		pos += centers[i % num_centers];
 
+		real velocity = 100 * length(pos); // (i % 2 == 0 ? 1 : -1)* length(pos.xy());
+
+		vec2 vel = {};
+		vel.x = -velocity * sin(theta);
+		vel.y = velocity * cos(theta);
+
 		particles[i] = {};
 		particles[i].position = pos;
-		particles[i].mass = 0.2 * (rngs[i*3 + 2] + 0.1);
+		particles[i].velocity = vel;
+		particles[i].mass = 0.5; // 0.6 * (rngs[i * 3 + 2] + 0.1);
 	}
 
 
@@ -568,7 +608,7 @@ namespace reycode {
 		window_desc.width = extent.x;
 		window_desc.height = extent.y;
 		window_desc.validation = true;
-		window_desc.vsync = false;
+		window_desc.vsync = true;
 
 		Cuda_Error err = {};
 
@@ -578,10 +618,10 @@ namespace reycode {
 		Arena frame_arena = make_host_arena(gb(2));
 		DEFER(destroy_host_arena(frame_arena));
 
-		Arena frame_device_arena = make_device_arena(gb(1), err);
+		Arena frame_device_arena = make_device_arena(gb(2), err);
 		DEFER(destroy_device_arena(frame_arena));
 
-		Arena device_arena = make_device_arena(gb(1), err);
+		Arena device_arena = make_device_arena(gb(2), err);
 		DEFER(destroy_device_arena(device_arena));
 
 		Window* window = make_window(perm_arena, window_desc);
@@ -593,15 +633,18 @@ namespace reycode {
 
 		Window_Input input = { window };
 
-		GLuint shader = shader_make(rhi, vertex_shader_text, face_fragment_shader_text);
-		DEFER(shader_destroy(rhi, shader));
+		GLuint shader_particle = shader_make(rhi, vertex_shader_particle_text, face_fragment_shader_particle_text);
+		DEFER(shader_destroy(rhi, shader_particle));
+
+		GLuint shader_tree = shader_make(rhi, vertex_shader_tree_text, face_fragment_shader_tree_text);
+		DEFER(shader_destroy(rhi, shader_particle));
 
 		Vertex_Buffer vertex_buffer;
 		Vertex_Arena vertex_particle_arena;
 		Vertex_Arena vertex_quad_tree_arena;
 		Vertex_Arena vertex_tree_arena;
 
-		uint32_t n = 1e6;
+		uint32_t n = 5e6;
 		slice<Particle_AOS> particles;
 		slice<Particle_AOS> particles2;
 		slice<Quad_Tree_Node> nodes;
@@ -628,10 +671,10 @@ namespace reycode {
 		}
 		else {
 			Particle_AOS particles_cpu[4] = {};
-			particles_cpu[0].position = vec3(0.5, 0.5, 0);
-			particles_cpu[1].position = vec3(-0.5, 0.5, 0);
-			particles_cpu[2].position = vec3(0.5, -0.5, 0);
-			particles_cpu[3].position = vec3(-0.5, -0.5, 0);
+			particles_cpu[0].position = vec2(0.5, 0.5);
+			particles_cpu[1].position = vec2(-0.5, 0.5);
+			particles_cpu[2].position = vec2(0.5, -0.5);
+			particles_cpu[3].position = vec2(-0.5, -0.5);
 
 			for (uint32_t i = 0; i < 4; i++) particles_cpu[i].mass = 100;
 		
@@ -642,7 +685,7 @@ namespace reycode {
 		AABB aabb = { vec2(-10.0_R), vec2(10.0_R) };
 
 		Vertex_Buffer_Desc desc = {};
-		desc.vertex_buffer_size = mb(500);
+		desc.vertex_buffer_size = gb(1);
 		desc.index_buffer_size = mb(500);
 
 		vertex_buffer = make_vertex_buffer(rhi, desc);
@@ -695,7 +738,7 @@ namespace reycode {
 
 			if (playing) {
 				const uint32_t sub_timesteps = 1;
-				real sim_dt = 1e-4;
+				real sim_dt = 5e-5;
 
 				for (uint32_t i = 0; i < sub_timesteps; i++) {
 					real t = get_time();
@@ -705,7 +748,7 @@ namespace reycode {
 					//debug_view_device_values(particles2, 100);
 					
 					std::swap(particles, particles2);
-					//cudaDeviceSynchronize();
+					cudaDeviceSynchronize();
 					printf("Advance gravity %f\n", 1000 * (get_time() - t));
 				}
 			}
@@ -723,18 +766,27 @@ namespace reycode {
 			{
 				glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-				glEnable(GL_DEPTH_TEST);
+				glDisable(GL_DEPTH_TEST);
 				glDisable(GL_CULL_FACE);
 				glLineWidth(1.0);
 
-				glUseProgram(shader);
-				glUniformMatrix4fv(glGetUniformLocation(shader, "MVP"), 1, GL_TRUE, (const GLfloat*)&mvp);
-				glUniform3fv(glGetUniformLocation(shader, "dir_light"), 1, &dir_light.x);
+				glEnable(GL_PROGRAM_POINT_SIZE);
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				glUseProgram(shader_particle);
+				glUniformMatrix4fv(glGetUniformLocation(shader_particle, "MVP"), 1, GL_TRUE, (const GLfloat*)&mvp);
+				glUniform3fv(glGetUniformLocation(shader_particle, "dir_light"), 1, &dir_light.x);
 
 				Command_Buffer cmd_buffer = {};
 				cmd_buffer_bind(cmd_buffer, vertex_buffer);
-				cmd_buffer_draw(cmd_buffer, DRAW_LINE, vertex_quad_tree_arena);
-				cmd_buffer_draw(cmd_buffer, DRAW_TRIANGLES, vertex_particle_arena);
+				cmd_buffer_draw(cmd_buffer, DRAW_TRIANGLES, vertex_quad_tree_arena);
+
+				glUseProgram(shader_tree);
+				glUniformMatrix4fv(glGetUniformLocation(shader_tree, "MVP"), 1, GL_TRUE, (const GLfloat*)&mvp);
+				glUniform3fv(glGetUniformLocation(shader_tree, "dir_light"), 1, &dir_light.x);
+
+				cmd_buffer_draw(cmd_buffer, DRAW_POINTS, vertex_particle_arena);
 
 				window_draw(*window);
 			}

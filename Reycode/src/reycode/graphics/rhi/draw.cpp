@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 
 namespace reycode {
-    int DRAW_MODE_TO_GL[DRAW_MODE_COUNT] = { GL_TRIANGLES, GL_LINES };
+    int DRAW_MODE_TO_GL[DRAW_MODE_COUNT] = { GL_TRIANGLES, GL_LINES, GL_POINTS };
 
     void cmd_buffer_bind(Command_Buffer& buffer, const Vertex_Buffer& vertex_buffer) {
         glBindVertexArray(vertex_buffer.vao);

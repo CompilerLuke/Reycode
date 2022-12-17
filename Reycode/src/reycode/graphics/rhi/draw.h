@@ -8,6 +8,7 @@ namespace reycode {
 	enum Draw_Mode {
 		DRAW_TRIANGLES,
 		DRAW_LINE,
+		DRAW_POINTS,
 		DRAW_MODE_COUNT
 	};
 
